@@ -9,14 +9,17 @@ cd /home/aleks/wallet_service
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 uvicorn app.main:app --reload --reload-dir app
 ```
 
-При старте приложение создает SQLite-файл:
+По умолчанию приложение использует SQLite. Путь к базе задается через `DATABASE_URL`:
 
 ```text
-wallet_service.db
+DATABASE_URL=sqlite:///./wallet_service.db
 ```
+
+При старте приложение создает SQLite-файл `wallet_service.db`, если его еще нет.
 
 Проверка:
 
