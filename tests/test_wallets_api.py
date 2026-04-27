@@ -62,6 +62,17 @@ def test_deposit_money() -> None:
     assert response.json()["balance"] == "150.50"
 
 
+def test_deposit_rejects_more_than_two_decimal_places() -> None:
+    wallet = client.post("/wallets").json()
+
+    response = client.post(
+        f"/wallets/{wallet['id']}/deposit",
+        json={"amount": "10.999"},
+    )
+
+    assert response.status_code == 422
+
+
 def test_withdraw_money() -> None:
     wallet = client.post("/wallets").json()
     client.post(f"/wallets/{wallet['id']}/deposit", json={"amount": "200"})
@@ -73,6 +84,18 @@ def test_withdraw_money() -> None:
 
     assert response.status_code == 200
     assert response.json()["balance"] == "164.25"
+
+
+def test_withdraw_rejects_more_than_two_decimal_places() -> None:
+    wallet = client.post("/wallets").json()
+    client.post(f"/wallets/{wallet['id']}/deposit", json={"amount": "200"})
+
+    response = client.post(
+        f"/wallets/{wallet['id']}/withdraw",
+        json={"amount": "1.999"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_withdraw_fails_when_balance_is_too_low() -> None:

@@ -1,13 +1,21 @@
 from decimal import Decimal
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
+BalanceAmount = Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=2)]
+PositiveMoneyAmount = Annotated[
+    Decimal,
+    Field(gt=0, max_digits=18, decimal_places=2),
+]
+
+
 class Wallet(BaseModel):
     id: UUID
-    balance: Decimal = Field(ge=0)
+    balance: BalanceAmount
 
 
 class TransactionType(StrEnum):
@@ -19,9 +27,9 @@ class Transaction(BaseModel):
     id: UUID
     wallet_id: UUID
     type: TransactionType
-    amount: Decimal = Field(gt=0)
-    balance_after: Decimal = Field(ge=0)
+    amount: PositiveMoneyAmount
+    balance_after: BalanceAmount
 
 
 class MoneyOperation(BaseModel):
-    amount: Decimal = Field(gt=0)
+    amount: PositiveMoneyAmount
