@@ -14,9 +14,16 @@ PositiveMoneyAmount = Annotated[
 ]
 
 
+class WalletStatus(StrEnum):
+    active = "active"
+    blocked = "blocked"
+    closed = "closed"
+
+
 class Wallet(BaseModel):
     id: UUID
     balance: BalanceAmount
+    status: WalletStatus
 
 
 class TransactionType(StrEnum):
@@ -35,3 +42,7 @@ class Transaction(BaseModel):
 
 class MoneyOperation(BaseModel):
     amount: PositiveMoneyAmount
+
+
+class WalletStatusUpdate(BaseModel):
+    status: WalletStatus

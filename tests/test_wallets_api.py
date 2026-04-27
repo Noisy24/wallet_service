@@ -37,6 +37,7 @@ def test_create_wallet() -> None:
 
     assert response.status_code == 201
     assert response.json()["balance"] == "0.00"
+    assert response.json()["status"] == "active"
     assert "id" in response.json()
 
 
@@ -60,6 +61,7 @@ def test_deposit_money() -> None:
 
     assert response.status_code == 200
     assert response.json()["balance"] == "150.50"
+    assert response.json()["status"] == "active"
 
 
 def test_deposit_rejects_more_than_two_decimal_places() -> None:
@@ -108,6 +110,48 @@ def test_withdraw_fails_when_balance_is_too_low() -> None:
 
     assert response.status_code == 400
     assert response.json() == {"detail": "Insufficient funds"}
+
+
+def test_blocked_wallet_rejects_money_operations() -> None:
+    wallet = client.post("/wallets").json()
+
+    status_response = client.patch(
+        f"/wallets/{wallet['id']}/status",
+        json={"status": "blocked"},
+    )
+    deposit_response = client.post(
+        f"/wallets/{wallet['id']}/deposit",
+        json={"amount": "10"},
+    )
+    withdraw_response = client.post(
+        f"/wallets/{wallet['id']}/withdraw",
+        json={"amount": "1"},
+    )
+
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "blocked"
+    assert deposit_response.status_code == 409
+    assert deposit_response.json() == {"detail": "Wallet is blocked"}
+    assert withdraw_response.status_code == 409
+    assert withdraw_response.json() == {"detail": "Wallet is blocked"}
+
+
+def test_closed_wallet_rejects_money_operations() -> None:
+    wallet = client.post("/wallets").json()
+
+    status_response = client.patch(
+        f"/wallets/{wallet['id']}/status",
+        json={"status": "closed"},
+    )
+    deposit_response = client.post(
+        f"/wallets/{wallet['id']}/deposit",
+        json={"amount": "10"},
+    )
+
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "closed"
+    assert deposit_response.status_code == 409
+    assert deposit_response.json() == {"detail": "Wallet is closed"}
 
 
 def test_get_transactions() -> None:

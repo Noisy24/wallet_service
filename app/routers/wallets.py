@@ -6,10 +6,17 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import services
-from app.schemas import MoneyOperation, Transaction, Wallet
+from app.schemas import MoneyOperation, Transaction, Wallet, WalletStatusUpdate
 
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
+
+
+def _wallet_inactive_exception(wallet_status: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=f"Wallet is {wallet_status}",
+    )
 
 
 @router.post("", response_model=Wallet, status_code=status.HTTP_201_CREATED)
@@ -46,6 +53,8 @@ async def deposit(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Wallet not found",
         )
+    except services.WalletInactiveError as error:
+        raise _wallet_inactive_exception(error.wallet_status)
 
 
 @router.post("/{wallet_id}/withdraw", response_model=Wallet)
@@ -61,10 +70,27 @@ async def withdraw(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Wallet not found",
         )
+    except services.WalletInactiveError as error:
+        raise _wallet_inactive_exception(error.wallet_status)
     except services.InsufficientFundsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient funds",
+        )
+
+
+@router.patch("/{wallet_id}/status", response_model=Wallet)
+async def set_wallet_status(
+    wallet_id: UUID,
+    status_update: WalletStatusUpdate,
+    db: Session = Depends(get_db),
+) -> Wallet:
+    try:
+        return services.set_wallet_status(db, wallet_id, status_update.status)
+    except services.WalletNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Wallet not found",
         )
 
 

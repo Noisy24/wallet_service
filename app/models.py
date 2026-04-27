@@ -12,6 +12,12 @@ class WalletModel(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     balance: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
 
     transactions: Mapped[list["TransactionModel"]] = relationship(
         back_populates="wallet",

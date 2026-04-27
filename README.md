@@ -48,6 +48,20 @@ curl http://127.0.0.1:8000/ping
 GET /wallets/{wallet_id}/transactions?limit=50&offset=0&order=asc
 ```
 
+Кошелек имеет статус:
+
+```text
+active  - операции разрешены
+blocked - deposit и withdraw запрещены
+closed  - deposit и withdraw запрещены
+```
+
+Изменение статуса:
+
+```text
+PATCH /wallets/{wallet_id}/status
+```
+
 Swagger UI:
 
 ```text
