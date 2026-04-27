@@ -109,10 +109,25 @@ def withdraw(db: Session, wallet_id: UUID, amount: Decimal) -> Wallet:
     return Wallet(id=wallet_id, balance=balance_after)
 
 
-def get_transactions(db: Session, wallet_id: UUID) -> list[Transaction]:
+def get_transactions(
+    db: Session,
+    wallet_id: UUID,
+    limit: int,
+    offset: int,
+    order: str,
+) -> list[Transaction]:
     _get_wallet_model(db, wallet_id)
+    order_by = (
+        (TransactionModel.created_at.desc(), TransactionModel.id.desc())
+        if order == "desc"
+        else (TransactionModel.created_at.asc(), TransactionModel.id.asc())
+    )
     transaction_models = db.scalars(
-        select(TransactionModel).where(TransactionModel.wallet_id == str(wallet_id))
+        select(TransactionModel)
+        .where(TransactionModel.wallet_id == str(wallet_id))
+        .order_by(*order_by)
+        .limit(limit)
+        .offset(offset)
     ).all()
     return [
         _transaction_to_schema(transaction_model)
@@ -156,4 +171,5 @@ def _transaction_to_schema(transaction: TransactionModel) -> Transaction:
         type=TransactionType(transaction.type),
         amount=transaction.amount,
         balance_after=transaction.balance_after,
+        created_at=transaction.created_at,
     )

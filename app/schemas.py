@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
@@ -29,6 +30,7 @@ class Transaction(BaseModel):
     type: TransactionType
     amount: PositiveMoneyAmount
     balance_after: BalanceAmount
+    created_at: datetime
 
 
 class MoneyOperation(BaseModel):

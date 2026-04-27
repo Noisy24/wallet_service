@@ -118,19 +118,53 @@ def test_get_transactions() -> None:
     response = client.get(f"/wallets/{wallet['id']}/transactions")
 
     assert response.status_code == 200
+    transactions = response.json()
     assert response.json() == [
         {
-            "id": response.json()[0]["id"],
+            "id": transactions[0]["id"],
             "wallet_id": wallet["id"],
             "type": "deposit",
             "amount": "200.00",
             "balance_after": "200.00",
+            "created_at": transactions[0]["created_at"],
         },
         {
-            "id": response.json()[1]["id"],
+            "id": transactions[1]["id"],
             "wallet_id": wallet["id"],
             "type": "withdraw",
             "amount": "50.00",
             "balance_after": "150.00",
+            "created_at": transactions[1]["created_at"],
         },
     ]
+
+
+def test_get_transactions_supports_pagination_and_desc_order() -> None:
+    wallet = client.post("/wallets").json()
+    client.post(f"/wallets/{wallet['id']}/deposit", json={"amount": "100"})
+    client.post(f"/wallets/{wallet['id']}/withdraw", json={"amount": "10"})
+    client.post(f"/wallets/{wallet['id']}/deposit", json={"amount": "25"})
+
+    response = client.get(
+        f"/wallets/{wallet['id']}/transactions",
+        params={"limit": 2, "offset": 1, "order": "desc"},
+    )
+
+    assert response.status_code == 200
+    transactions = response.json()
+    assert len(transactions) == 2
+    assert [transaction["type"] for transaction in transactions] == [
+        "withdraw",
+        "deposit",
+    ]
+
+
+def test_get_transactions_rejects_invalid_pagination() -> None:
+    wallet = client.post("/wallets").json()
+
+    response = client.get(
+        f"/wallets/{wallet['id']}/transactions",
+        params={"limit": 0},
+    )
+
+    assert response.status_code == 422

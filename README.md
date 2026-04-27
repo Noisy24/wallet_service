@@ -42,6 +42,12 @@ curl http://127.0.0.1:8000/ping
 3. Выполни `GET /wallets` и скопируй `id`.
 4. Используй этот `id` в `deposit`, `withdraw` и `transactions`.
 
+История транзакций поддерживает параметры:
+
+```text
+GET /wallets/{wallet_id}/transactions?limit=50&offset=0&order=asc
+```
+
 Swagger UI:
 
 ```text

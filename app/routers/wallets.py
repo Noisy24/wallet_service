@@ -1,6 +1,7 @@
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -70,10 +71,13 @@ async def withdraw(
 @router.get("/{wallet_id}/transactions", response_model=list[Transaction])
 async def get_transactions(
     wallet_id: UUID,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    order: Literal["asc", "desc"] = "asc",
     db: Session = Depends(get_db),
 ) -> list[Transaction]:
     try:
-        return services.get_transactions(db, wallet_id)
+        return services.get_transactions(db, wallet_id, limit, offset, order)
     except services.WalletNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

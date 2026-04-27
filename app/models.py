@@ -1,6 +1,7 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Numeric, String
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,5 +31,11 @@ class TransactionModel(Base):
     type: Mapped[str] = mapped_column(String(20), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
     balance_after: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        server_default=func.now(),
+    )
 
     wallet: Mapped[WalletModel] = relationship(back_populates="transactions")
