@@ -8,3 +8,6 @@ wallet_service.db
 .env
 .env.*
 !.env.example
+
+.postman/
+postman/
