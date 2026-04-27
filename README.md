@@ -10,6 +10,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+alembic upgrade head
 uvicorn app.main:app --reload --reload-dir app
 ```
 
@@ -20,6 +21,12 @@ DATABASE_URL=sqlite:///./wallet_service.db
 ```
 
 При старте приложение создает SQLite-файл `wallet_service.db`, если его еще нет.
+
+Схема базы управляется миграциями Alembic. После изменения моделей применяй миграции:
+
+```bash
+alembic upgrade head
+```
 
 Проверка:
 

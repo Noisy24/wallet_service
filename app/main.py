@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.database import create_db_and_tables
 from app.logging_config import configure_logging
 from app.routers import health, wallets
 
@@ -15,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    create_db_and_tables()
     logger.info("wallet-service started")
     yield
 
