@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import TransactionModel, WalletModel
@@ -41,44 +41,72 @@ def get_wallet(db: Session, wallet_id: UUID) -> Wallet:
 
 
 def deposit(db: Session, wallet_id: UUID, amount: Decimal) -> Wallet:
-    wallet_model = _get_wallet_model(db, wallet_id)
-    wallet_model.balance += amount
-    _add_transaction(db, wallet_model, TransactionType.deposit, amount)
+    wallet_id_value = str(wallet_id)
+    balance_after = db.scalar(
+        update(WalletModel)
+        .where(WalletModel.id == wallet_id_value)
+        .values(balance=WalletModel.balance + amount)
+        .returning(WalletModel.balance)
+    )
+    if balance_after is None:
+        raise WalletNotFoundError
+
+    _add_transaction(
+        db,
+        wallet_id_value,
+        TransactionType.deposit,
+        amount,
+        balance_after,
+    )
     db.commit()
-    db.refresh(wallet_model)
 
     logger.info(
         "wallet deposit wallet_id=%s amount=%s balance_after=%s",
-        wallet_model.id,
+        wallet_id_value,
         amount,
-        wallet_model.balance,
+        balance_after,
     )
-    return _wallet_to_schema(wallet_model)
+    return Wallet(id=wallet_id, balance=balance_after)
 
 
 def withdraw(db: Session, wallet_id: UUID, amount: Decimal) -> Wallet:
-    wallet_model = _get_wallet_model(db, wallet_id)
-    if wallet_model.balance < amount:
+    wallet_id_value = str(wallet_id)
+    balance_after = db.scalar(
+        update(WalletModel)
+        .where(WalletModel.id == wallet_id_value)
+        .where(WalletModel.balance >= amount)
+        .values(balance=WalletModel.balance - amount)
+        .returning(WalletModel.balance)
+    )
+    if balance_after is None:
+        wallet_model = db.get(WalletModel, wallet_id_value)
+        if wallet_model is None:
+            raise WalletNotFoundError
+
         logger.warning(
             "wallet withdraw rejected wallet_id=%s amount=%s balance=%s",
-            wallet_model.id,
+            wallet_id_value,
             amount,
             wallet_model.balance,
         )
         raise InsufficientFundsError
 
-    wallet_model.balance -= amount
-    _add_transaction(db, wallet_model, TransactionType.withdraw, amount)
+    _add_transaction(
+        db,
+        wallet_id_value,
+        TransactionType.withdraw,
+        amount,
+        balance_after,
+    )
     db.commit()
-    db.refresh(wallet_model)
 
     logger.info(
         "wallet withdraw wallet_id=%s amount=%s balance_after=%s",
-        wallet_model.id,
+        wallet_id_value,
         amount,
-        wallet_model.balance,
+        balance_after,
     )
-    return _wallet_to_schema(wallet_model)
+    return Wallet(id=wallet_id, balance=balance_after)
 
 
 def get_transactions(db: Session, wallet_id: UUID) -> list[Transaction]:
@@ -101,17 +129,18 @@ def _get_wallet_model(db: Session, wallet_id: UUID) -> WalletModel:
 
 def _add_transaction(
     db: Session,
-    wallet: WalletModel,
+    wallet_id: str,
     transaction_type: TransactionType,
     amount: Decimal,
+    balance_after: Decimal,
 ) -> None:
     db.add(
         TransactionModel(
             id=str(uuid4()),
-            wallet_id=wallet.id,
+            wallet_id=wallet_id,
             type=transaction_type.value,
             amount=amount,
-            balance_after=wallet.balance,
+            balance_after=balance_after,
         )
     )
 
